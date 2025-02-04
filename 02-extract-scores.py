@@ -203,9 +203,20 @@ def calculate_average_scores(base_dir="docs/extracted_scores"):
     sum_dict = {metric: 0.0 for metric in metrics}
     count_dict = {metric: 0 for metric in metrics}
     
+    # Track unique projects
+    projects_set = set()
+    total_files = 0
+    
     for root, dirs, files in os.walk(base_dir):
         for f in files:
             if f.endswith('.json'):
+                total_files += 1
+                # Extract project path from the file path
+                # Example: docs/extracted_scores/otc/sapmiddleware/... -> otc/sapmiddleware
+                project_path = os.path.relpath(root, base_dir).split('code-review-scores')[0].strip('/')
+                if project_path:  # Only add if it's not empty
+                    projects_set.add(project_path)
+                
                 json_path = os.path.join(root, f)
                 try:
                     with open(json_path, 'r', encoding='utf-8') as jf:
@@ -239,6 +250,13 @@ def calculate_average_scores(base_dir="docs/extracted_scores"):
             avg_results[metric] = round(sum_dict[metric] / count_dict[metric], 2)
         else:
             avg_results[metric] = "N/A"
+    
+    # Add metadata about the analysis
+    avg_results["Metadata"] = {
+        "Total Files Processed": total_files,
+        "Total Projects": len(projects_set),
+        "Projects List": sorted(list(projects_set))
+    }
     return avg_results
 
 def save_average_scores(avg_dict, base_dir="docs/extracted_scores"):
